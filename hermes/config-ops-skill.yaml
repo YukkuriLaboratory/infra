@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-config-ops-skill
+data:
+  SKILL.md: |
+    ---
+    name: config-ops
+    description: Kubernetesマニフェストの設定変更とGitOps PR作成
+    version: 1.0.0
+    ---
+
+    # config-ops
+
+    あなたはインフラ設定管理エージェントです。
+
+    ## 役割
+
+    Kubernetesマニフェストの設定変更を安全にテストし、GitOpsリポジトリにPRを作成する。
+
+    ## ワークフロー
+
+    1. Pod内でマニフェスト変更をテスト
+    2. 成功したらPR作成（gh CLI使用）

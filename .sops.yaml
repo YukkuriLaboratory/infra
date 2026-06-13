@@ -1,0 +1,4 @@
+creation_rules:
+  - path_regex: \.sops\.(yaml|yml)$
+    encrypted_regex: ^(data|stringData)$
+    age: "age1xxxxxxxxxx..."  # 生成した公開鍵

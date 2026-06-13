@@ -1,0 +1,203 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: hermes-yukulab
+  labels:
+    app: hermes-yukulab
+spec:
+  serviceName: hermes-yukulab
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hermes-yukulab
+  template:
+    metadata:
+      labels:
+        app: hermes-yukulab
+    spec:
+      serviceAccountName: hermes-yukulab
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: init-config
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              sed 's|\${OPENAI_API_KEY}|'"$OPENAI_API_KEY"'|g' /template/config.yaml > /opt/data/config.yaml && \
+              chmod 644 /opt/data/config.yaml
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-yukulab-secrets
+                  key: OPENAI_API_KEY
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: config-template
+              mountPath: /template
+            - name: data
+              mountPath: /opt/data
+        - name: init-skills
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /opt/data/skills && \
+              cp -r /skill-seed/* /opt/data/skills/ && \
+              chmod -R 755 /opt/data/skills
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: skill-seed
+              mountPath: /skill-seed
+            - name: data
+              mountPath: /opt/data
+        - name: install-tools
+          image: alpine:latest
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /opt/data/bin && \
+              apk add --no-cache curl >/dev/null 2>&1 && \
+              curl -sLO "https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl" && \
+              chmod +x kubectl && \
+              mv kubectl /opt/data/bin/kubectl && \
+              curl -sLO "https://github.com/cli/cli/releases/download/v2.67.0/gh_2.67.0_linux_amd64.tar.gz" && \
+              tar xzf gh_2.67.0_linux_amd64.tar.gz && \
+              mv gh_2.67.0_linux_amd64/bin/gh /opt/data/bin/gh && \
+              rm -rf gh_2.67.0_linux_amd64 gh_2.67.0_linux_amd64.tar.gz
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /opt/data
+      containers:
+        - name: hermes
+          image: docker.io/nousresearch/hermes-agent:latest
+          imagePullPolicy: Always
+          tty: true
+          stdin: true
+          args:
+            - gateway
+            - run
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - "ALL"
+              add:
+                - SETUID
+                - SETGID
+                - CHOWN
+                - DAC_OVERRIDE
+                - FOWNER
+                - SETPCAP
+          env:
+            - name: HERMES_HOME
+              value: /opt/data
+            - name: PATH
+              value: /opt/data/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-yukulab-secrets
+                  key: OPENAI_API_KEY
+            - name: OPENAI_BASE_URL
+              value: "https://crof.ai/v1"
+            - name: DISCORD_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-yukulab-secrets
+                  key: DISCORD_BOT_TOKEN
+            - name: DISCORD_ALLOWED_USERS
+              value: "<DiscordユーザーID（カンマ区切り）>"
+            - name: DISCORD_REQUIRE_MENTION
+              value: "true"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-yukulab-secrets
+                  key: GITHUB_TOKEN
+            - name: GH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-yukulab-secrets
+                  key: GITHUB_TOKEN
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /opt/data
+            - name: run
+              mountPath: /run
+          resources:
+            requests:
+              cpu: 50m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "ps aux | grep -q '[h]ermes'"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "ps aux | grep -q '[h]ermes'"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: config-template
+          configMap:
+            name: hermes-yukulab-config
+        - name: skill-seed
+          projected:
+            sources:
+              - configMap:
+                  name: hermes-config-ops-skill
+                  items:
+                    - key: SKILL.md
+                      path: config-ops/SKILL.md
+        - name: run
+          emptyDir:
+            medium: Memory
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: longhorn
+        resources:
+          requests:
+            storage: 5Gi

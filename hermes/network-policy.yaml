@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-hermes-egress
+spec:
+  podSelector:
+    matchLabels:
+      app: hermes-yukulab
+  policyTypes:
+    - Egress
+  egress:
+    # 外部HTTPS通信（Discord, GitHub, Crof AI API等）
+    - ports:
+        - protocol: TCP
+          port: 443
+    # DNS解決
+    - ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+    # namespace内のその他サービスへのアクセス
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
