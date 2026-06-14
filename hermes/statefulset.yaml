@@ -149,7 +149,7 @@ spec:
                   name: hermes-yukulab-secrets
                   key: DISCORD_BOT_TOKEN
             - name: DISCORD_ALLOWED_USERS
-              value: "275915497353117697,727491451805761537,264048408422121473"
+              value: "275915497353117697,727491451805761537,264048408422121473,866956702486364171"
             - name: DISCORD_REQUIRE_MENTION
               value: "true"
           ports:
