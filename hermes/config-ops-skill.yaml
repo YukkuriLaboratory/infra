@@ -41,12 +41,8 @@ data:
     ### 1. Clone / Access the Repo
 
     ```bash
-    # If not already cloned:
     gh repo clone YukkuriLaboratory/infra /tmp/infra
     cd /tmp/infra
-
-    # Or use an existing clone:
-    cd <existing-clone-path>
     ```
 
     ### 2. Make Changes
@@ -55,43 +51,46 @@ data:
     - Edit skill definitions in `hermes/config-ops-skill.yaml` or similar
     - Edit Nix/Shell files at the repo root (`.envrc`, `flake.nix`, etc.)
 
-    ### 3. Stage and Commit
+    ### 3. Self-Review (before push — check the diff locally)
+
+    ```bash
+    git diff                       # review uncommitted changes
+    git diff --cached               # review staged changes
+
+    # Verify no secrets leaked
+    grep -E '(api_key|token|password|GITHUB_TOKEN|GH_TOKEN)' -- *.yaml
+
+    # Verify YAML syntax
+    python3 -c "import yaml; yaml.safe_load(open('file'))"
+
+    # Check symlinks resolve
+    ls -la
+
+    # Confirm branch is not main
+    git branch --show-current
+    ```
+
+    ### 4. Commit and Push
 
     ```bash
     git add -A
-    git commit -m "feat(hermes): <descriptive message>"
+    git commit -m "fix(hermes): <descriptive message>"
+    git push origin HEAD
     ```
 
-    ### 4. Create a PR (not push to main)
+    ### 5. Create PR
 
     ```bash
-    # Create a branch first
-    git checkout -b fix/<short-description>
-
-    # Push the branch
-    git push origin HEAD
-
-    # Create the PR via gh
     gh pr create \
       --title "fix(hermes): <title>" \
       --body "<description of what changed and why>" \
       --base main
     ```
 
-    ### 5. Self-Review
-
-    Before marking the PR as ready:
-
-    1. **Check the diff** — `gh pr diff <number>` or `git diff main..HEAD`
-    2. **Verify no secrets leaked** — scan for api_key, token, password in the diff
-    3. **Verify YAML syntax** — `yamllint` or `python -c "import yaml; yaml.safe_load(open('file'))"`
-    4. **Check the symlinks** — `ls -la` to verify `..data` patterns resolve correctly
-    5. **Confirm the PR targets `main`** — `gh pr view --json baseRefName`
-
-    ### 6. Merge (when approved)
+    ### 6. Post-PR Verification
 
     ```bash
-    gh pr merge --squash --auto
+    gh pr view --json baseRefName,state,files
     ```
 
     ## Common Pitfalls
@@ -100,14 +99,13 @@ data:
 
     2. **Broken `..data` symlinks.** The Kubernetes `..data` pattern (`..data -> ..2024_xx_xx/`) only works inside a pod. On bare metal, create actual files at the target path instead.
 
-    3. **Forgetting `gh auth`.** Before any `gh` operation, ensure you're logged in:
+    3. **`gh` not authenticated.** If `gh auth status` returns "not logged in", the GITHUB_TOKEN is likely not set in the environment. Check:
        ```bash
-       gh auth status
-       # If not logged in:
-       gh auth login --with-token < <token-file>
+       echo "GITHUB_TOKEN length: ${#GITHUB_TOKEN}"
        ```
+       If length is 0, the Kubernetes secret wasn't resolved. Use `gh auth login --with-token` to set it up.
 
-    4. **Committing without checking the diff first.** Always `git diff --cached` before pushing to catch accidental inclusions.
+    4. **Committing without checking the diff first.** Always `git diff --cached` before pushing.
 
     5. **Leaving `api_key` or `token` in the diff.** Use `.sops.yaml` or environment variable references for secrets.
 
