@@ -6,19 +6,117 @@ data:
   SKILL.md: |
     ---
     name: config-ops
-    description: Kubernetesマニフェストの設定変更とGitOps PR作成
+    description: "Manage infrastructure configuration via YukkuriLaboratory/infra GitOps repo: edit configs, create PRs with gh CLI, and self-review changes."
     version: 1.0.0
+    author: Hermes Agent (YukkuriLaboratory)
+    license: MIT
+    metadata:
+      hermes:
+        tags: [infrastructure, gitops, github, pr, self-review]
+        related_skills: [github-pr-workflow, github-code-review]
     ---
 
     # config-ops
 
-    あなたはインフラ設定管理エージェントです。
+    ## Overview
 
-    ## 役割
+    This skill manages the **YukkuriLaboratory/infra** GitOps repository — the source of truth for Hermes Agent's infrastructure configuration (Kubernetes manifests, Nix flakes, config files, and skill definitions).
 
-    Kubernetesマニフェストの設定変更を安全にテストし、GitOpsリポジトリにPRを作成する。
+    When you need to change how Hermes is configured, deployed, or extended, this is the workflow to follow.
 
-    ## ワークフロー
+    ## When to Use
 
-    1. Pod内でマニフェスト変更をテスト
-    2. 成功したらPR作成（gh CLI使用）
+    - **Setting up new Hermes features** that require config changes (skills, tools, providers)
+    - **Fixing broken deployment artifacts** (symlinks, ConfigMaps, volume mounts)
+    - **Adding or updating skill definitions** in the `hermes/` directory of the infra repo
+    - **Any infrastructure change** that should be tracked via GitOps
+
+    ## Do NOT use for
+
+    - One-off local config changes that don't need to be committed to the repo
+    - Changes to the running Hermes session's state (use `memory` or `skill_manage` directly)
+
+    ## Workflow
+
+    ### 1. Clone / Access the Repo
+
+    ```bash
+    # If not already cloned:
+    gh repo clone YukkuriLaboratory/infra /tmp/infra
+    cd /tmp/infra
+
+    # Or use an existing clone:
+    cd <existing-clone-path>
+    ```
+
+    ### 2. Make Changes
+
+    - Edit YAML files under `hermes/` (ConfigMaps, StatefulSet, services, etc.)
+    - Edit skill definitions in `hermes/config-ops-skill.yaml` or similar
+    - Edit Nix/Shell files at the repo root (`.envrc`, `flake.nix`, etc.)
+
+    ### 3. Stage and Commit
+
+    ```bash
+    git add -A
+    git commit -m "feat(hermes): <descriptive message>"
+    ```
+
+    ### 4. Create a PR (not push to main)
+
+    ```bash
+    # Create a branch first
+    git checkout -b fix/<short-description>
+
+    # Push the branch
+    git push origin HEAD
+
+    # Create the PR via gh
+    gh pr create \
+      --title "fix(hermes): <title>" \
+      --body "<description of what changed and why>" \
+      --base main
+    ```
+
+    ### 5. Self-Review
+
+    Before marking the PR as ready:
+
+    1. **Check the diff** — `gh pr diff <number>` or `git diff main..HEAD`
+    2. **Verify no secrets leaked** — scan for api_key, token, password in the diff
+    3. **Verify YAML syntax** — `yamllint` or `python -c "import yaml; yaml.safe_load(open('file'))"`
+    4. **Check the symlinks** — `ls -la` to verify `..data` patterns resolve correctly
+    5. **Confirm the PR targets `main`** — `gh pr view --json baseRefName`
+
+    ### 6. Merge (when approved)
+
+    ```bash
+    gh pr merge --squash --auto
+    ```
+
+    ## Common Pitfalls
+
+    1. **Pushing to main directly.** Always create a branch and a PR. `main` is protected.
+
+    2. **Broken `..data` symlinks.** The Kubernetes `..data` pattern (`..data -> ..2024_xx_xx/`) only works inside a pod. On bare metal, create actual files at the target path instead.
+
+    3. **Forgetting `gh auth`.** Before any `gh` operation, ensure you're logged in:
+       ```bash
+       gh auth status
+       # If not logged in:
+       gh auth login --with-token < <token-file>
+       ```
+
+    4. **Committing without checking the diff first.** Always `git diff --cached` before pushing to catch accidental inclusions.
+
+    5. **Leaving `api_key` or `token` in the diff.** Use `.sops.yaml` or environment variable references for secrets.
+
+    ## Verification Checklist
+
+    - [ ] Changes are on a feature branch, not `main`
+    - [ ] PR title follows conventional commits (`fix:`, `feat:`, `chore:`)
+    - [ ] No secrets or tokens in the diff
+    - [ ] YAML files pass `yamllint` or Python validation
+    - [ ] Symlinks are valid (point to real files, not `..data` dead ends)
+    - [ ] `gh pr view` shows the correct base branch (`main`)
+    - [ ] Self-review completed before marking ready
