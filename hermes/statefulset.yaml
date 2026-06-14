@@ -132,7 +132,7 @@ spec:
                   name: hermes-yukulab-secrets
                   key: DISCORD_BOT_TOKEN
             - name: DISCORD_ALLOWED_USERS
-              value: "<DiscordユーザーID（カンマ区切り）>"
+              value: "275915497353117697 727491451805761537 264048408422121473"
             - name: DISCORD_REQUIRE_MENTION
               value: "true"
             - name: GITHUB_TOKEN
