@@ -57,7 +57,7 @@ data:
     git diff                       # review uncommitted changes
     git diff --cached               # review staged changes
 
-    # Verify no secrets leaked
+    # Verify no secrets leaked (public repo!)
     grep -E '(api_key|token|password|GITHUB_TOKEN|GH_TOKEN)' -- *.yaml
 
     # Verify YAML syntax
@@ -97,17 +97,19 @@ data:
 
     1. **Pushing to main directly.** Always create a branch and a PR. `main` is protected.
 
-    2. **Broken `..data` symlinks.** The Kubernetes `..data` pattern (`..data -> ..2024_xx_xx/`) only works inside a pod. On bare metal, create actual files at the target path instead.
+    2. **Public repo — never commit secrets.** This repo is **public** on GitHub. Any `api_key`, `token`, `password`, or `GITHUB_TOKEN` in a YAML file or commit message will be visible to everyone. Always use `secretKeyRef` (Kubernetes) or `.sops.yaml` (SOPS) for secrets.
 
-    3. **`gh` not authenticated.** If `gh auth status` returns "not logged in", the GITHUB_TOKEN is likely not set in the environment. Check:
+    3. **Broken `..data` symlinks.** The Kubernetes `..data` pattern (`..data -> ..2024_xx_xx/`) only works inside a pod. On bare metal, create actual files at the target path instead.
+
+    4. **`gh` not authenticated.** If `gh auth status` returns "not logged in", the GITHUB_TOKEN is likely not set in the environment. Check:
        ```bash
        echo "GITHUB_TOKEN length: ${#GITHUB_TOKEN}"
        ```
        If length is 0, the Kubernetes secret wasn't resolved. Use `gh auth login --with-token` to set it up.
 
-    4. **Committing without checking the diff first.** Always `git diff --cached` before pushing.
+    5. **Committing without checking the diff first.** Always `git diff --cached` before pushing.
 
-    5. **Leaving `api_key` or `token` in the diff.** Use `.sops.yaml` or environment variable references for secrets.
+    6. **Leaving `api_key` or `token` in the diff.** Use `.sops.yaml` or environment variable references for secrets.
 
     ## Verification Checklist
 
