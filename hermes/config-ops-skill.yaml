@@ -6,19 +6,117 @@ data:
   SKILL.md: |
     ---
     name: config-ops
-    description: Kubernetesマニフェストの設定変更とGitOps PR作成
+    description: "Manage infrastructure configuration via YukkuriLaboratory/infra GitOps repo: edit configs, create PRs with gh CLI, and self-review changes."
     version: 1.0.0
+    author: Hermes Agent (YukkuriLaboratory)
+    license: MIT
+    metadata:
+      hermes:
+        tags: [infrastructure, gitops, github, pr, self-review]
+        related_skills: [github-pr-workflow, github-code-review]
     ---
 
     # config-ops
 
-    あなたはインフラ設定管理エージェントです。
+    ## Overview
 
-    ## 役割
+    This skill manages the **YukkuriLaboratory/infra** GitOps repository — the source of truth for Hermes Agent's infrastructure configuration (Kubernetes manifests, Nix flakes, config files, and skill definitions).
 
-    Kubernetesマニフェストの設定変更を安全にテストし、GitOpsリポジトリにPRを作成する。
+    When you need to change how Hermes is configured, deployed, or extended, this is the workflow to follow.
 
-    ## ワークフロー
+    ## When to Use
 
-    1. Pod内でマニフェスト変更をテスト
-    2. 成功したらPR作成（gh CLI使用）
+    - **Setting up new Hermes features** that require config changes (skills, tools, providers)
+    - **Fixing broken deployment artifacts** (symlinks, ConfigMaps, volume mounts)
+    - **Adding or updating skill definitions** in the `hermes/` directory of the infra repo
+    - **Any infrastructure change** that should be tracked via GitOps
+
+    ## Do NOT use for
+
+    - One-off local config changes that don't need to be committed to the repo
+    - Changes to the running Hermes session's state (use `memory` or `skill_manage` directly)
+
+    ## Workflow
+
+    ### 1. Clone / Access the Repo
+
+    ```bash
+    gh repo clone YukkuriLaboratory/infra /tmp/infra
+    cd /tmp/infra
+    ```
+
+    ### 2. Make Changes
+
+    - Edit YAML files under `hermes/` (ConfigMaps, StatefulSet, services, etc.)
+    - Edit skill definitions in `hermes/config-ops-skill.yaml` or similar
+    - Edit Nix/Shell files at the repo root (`.envrc`, `flake.nix`, etc.)
+
+    ### 3. Self-Review (before push — check the diff locally)
+
+    ```bash
+    git diff                       # review uncommitted changes
+    git diff --cached               # review staged changes
+
+    # Verify no secrets leaked (public repo!)
+    grep -E '(api_key|token|password|GITHUB_TOKEN|GH_TOKEN)' -- *.yaml
+
+    # Verify YAML syntax
+    python3 -c "import yaml; yaml.safe_load(open('file'))"
+
+    # Check symlinks resolve
+    ls -la
+
+    # Confirm branch is not main
+    git branch --show-current
+    ```
+
+    ### 4. Commit and Push
+
+    ```bash
+    git add -A
+    git commit -m "fix(hermes): <descriptive message>"
+    git push origin HEAD
+    ```
+
+    ### 5. Create PR
+
+    ```bash
+    gh pr create \
+      --title "fix(hermes): <title>" \
+      --body "<description of what changed and why>" \
+      --base main
+    ```
+
+    ### 6. Post-PR Verification
+
+    ```bash
+    gh pr view --json baseRefName,state,files
+    ```
+
+    ## Common Pitfalls
+
+    1. **Pushing to main directly.** Always create a branch and a PR. `main` is protected.
+
+    2. **Public repo — never commit secrets.** This repo is **public** on GitHub. Any `api_key`, `token`, `password`, or `GITHUB_TOKEN` in a YAML file or commit message will be visible to everyone. Always use `secretKeyRef` (Kubernetes) or `.sops.yaml` (SOPS) for secrets.
+
+    3. **Broken `..data` symlinks.** The Kubernetes `..data` pattern (`..data -> ..2024_xx_xx/`) only works inside a pod. On bare metal, create actual files at the target path instead.
+
+    4. **`gh` not authenticated.** If `gh auth status` returns "not logged in", the GITHUB_TOKEN is likely not set in the environment. Check:
+       ```bash
+       echo "GITHUB_TOKEN length: ${#GITHUB_TOKEN}"
+       ```
+       If length is 0, the Kubernetes secret wasn't resolved. Use `gh auth login --with-token` to set it up.
+
+    5. **Committing without checking the diff first.** Always `git diff --cached` before pushing.
+
+    6. **Leaving `api_key` or `token` in the diff.** Use `.sops.yaml` or environment variable references for secrets.
+
+    ## Verification Checklist
+
+    - [ ] Changes are on a feature branch, not `main`
+    - [ ] PR title follows conventional commits (`fix:`, `feat:`, `chore:`)
+    - [ ] No secrets or tokens in the diff
+    - [ ] YAML files pass `yamllint` or Python validation
+    - [ ] Symlinks are valid (point to real files, not `..data` dead ends)
+    - [ ] `gh pr view` shows the correct base branch (`main`)
+    - [ ] Self-review completed before marking ready
