@@ -31,7 +31,7 @@ data:
       install_skill: true
     skills:
       external_dirs:
-        - /hermes/skills
+        - /opt/data/skills
     approvals:
       mode: auto
     logging:
