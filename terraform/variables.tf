@@ -34,7 +34,7 @@ variable "tunnel_name" {
 variable "team_name" {
   description = "Cloudflare Zero Trust team name"
   type        = string
-  default     = "yukulab-net"
+  default     = "yukulab"
 }
 
 variable "allowed_email_domain" {
