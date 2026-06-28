@@ -1,23 +1,5 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  # Hermes Agent
-  - hermes/secrets.sops.yaml
-  - hermes/service.yaml
-  - hermes/network-policy.yaml
-  - hermes/statefulset.yaml
-  - hermes/serviceaccount.yaml
-  - hermes/rbac.yaml
-  # - hermes/ingress.yaml    # オプション
-  # Cloudflare Tunnel
-  - cloudflared/tunnel-token.sops.yaml
-  - cloudflared/network-policy.yaml
-  - cloudflared/deployment.yaml
-
-configMapGenerator:
-  - name: hermes-yukulab-config
-    files:
-      - config.yaml=hermes/config.yaml
-  - name: hermes-config-ops-skill
-    files:
-      - SKILL.md=hermes/skills/config-ops/SKILL.md
+  - hermes
+  - cloudflared
