@@ -30,5 +30,6 @@ approvals:
   mode: auto
 logging:
   level: info
-toolsets:
-  - discord
+platform_toolsets:
+  discord:
+    - discord
