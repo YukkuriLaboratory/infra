@@ -33,3 +33,4 @@ logging:
 platform_toolsets:
   discord:
     - hermes-discord
+    - discord
