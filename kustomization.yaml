@@ -3,8 +3,6 @@ kind: Kustomization
 resources:
   # Hermes Agent
   - hermes/secrets.sops.yaml
-  - hermes/configmap.yaml
-  - hermes/config-ops-skill.yaml
   - hermes/service.yaml
   - hermes/network-policy.yaml
   - hermes/statefulset.yaml
@@ -15,3 +13,11 @@ resources:
   - cloudflared/tunnel-token.sops.yaml
   - cloudflared/network-policy.yaml
   - cloudflared/deployment.yaml
+
+configMapGenerator:
+  - name: hermes-yukulab-config
+    files:
+      - config.yaml=hermes/config.yaml
+  - name: hermes-config-ops-skill
+    files:
+      - SKILL.md=hermes/skills/config-ops/SKILL.md
