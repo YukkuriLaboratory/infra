@@ -4,3 +4,4 @@ terraform/.terraform/
 # Temporary .tfvars overrides
 terraform/*.tfvars.local
 terraform/terraform.tfvars.json
+terraform/*.tfstate.backup
