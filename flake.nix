@@ -19,8 +19,13 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             bashInteractive
+            # k8s
+            kubectl
+            fluxcd
+            # encryption
             sops
             age
+            # terraform
             opentofu
           ];
           # language=bash
