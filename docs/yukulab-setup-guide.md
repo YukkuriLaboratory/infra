@@ -1061,7 +1061,11 @@ spec:
 
 > **注意**: 上記には PostgreSQL・Redis のリソースは含まれていない。Phase 1 の Hermes Agent のリソースは Phase 1 用制約事項を参照。
 
-## 12. Cloudflare Tunnel
+## 12. Cloudflare Tunnel (OpenTofu管理)
+
+> **2026-06更新**: トンネルの作成・設定・CF AccessはOpenTofu（`terraform/`）で管理する。以下のマニフェストはOpenTofuの出力（トンネルトークン）をKubernetes Secretとして注入するためのもの。
+>
+> 詳細なOpenTofuの使い方は [terraform/README.md](../terraform/README.md) を参照。
 
 Plane を Cloudflare Tunnel 経由で公開する場合、パスベースのルーティングが必要になる。
 

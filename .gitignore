@@ -1,1 +1,6 @@
 .env
+# OpenTofu/Terraform provider cache
+terraform/.terraform/
+# Temporary .tfvars overrides
+terraform/*.tfvars.local
+terraform/terraform.tfvars.json

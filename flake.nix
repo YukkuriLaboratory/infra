@@ -21,7 +21,16 @@
             bashInteractive
             sops
             age
+            opentofu
           ];
+          # language=bash
+          shellHook = ''
+            rbw_get() { command -v rbw >/dev/null 2>&1 && rbw get "$1" 2>/dev/null; }
+            val="$(rbw_get yukulab-cf-api-token)"              && export TF_VAR_cloudflare_api_token="$val"
+            val="$(rbw_get yukulab-infra-tf-state-passphrase)" && export TF_VAR_state_encryption_passphrase="$val"
+            unset -f rbw_get
+            unset val
+          '';
         };
       }
     );

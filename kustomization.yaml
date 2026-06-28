@@ -11,3 +11,7 @@ resources:
   - hermes/serviceaccount.yaml
   - hermes/rbac.yaml
   # - hermes/ingress.yaml    # オプション
+  # Cloudflare Tunnel
+  - cloudflared/tunnel-token.sops.yaml
+  - cloudflared/network-policy.yaml
+  - cloudflared/deployment.yaml
