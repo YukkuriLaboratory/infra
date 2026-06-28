@@ -32,4 +32,4 @@ logging:
   level: info
 platform_toolsets:
   discord:
-    - discord
+    - hermes-discord
