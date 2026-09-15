@@ -1,7 +1,7 @@
 model:
   provider: custom
-  default: deepseek-v4-pro-0813
-  base_url: https://crof.ai/v1
+  default: deepseek-v4.1-flash
+  base_url: https://opencode.ai/zen/go/v1
   api_key: ${OPENAI_API_KEY}
 personality:
   name: Main Assistant
@@ -27,7 +27,9 @@ skills:
   external_dirs:
     - /opt/data/skills
 approvals:
-  mode: auto
+  mode: smart
+agent:
+  resonating_effort: max
 logging:
   level: info
 platform_toolsets:
