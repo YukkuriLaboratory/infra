@@ -109,6 +109,8 @@ spec:
             - -c
             - |
               set -eu
+              # Keep the image's Hermes paths while adding persistent tools.
+              export PATH="/opt/data/bin:$PATH"
               unset GH_TOKEN GITHUB_TOKEN
               export GH_CONFIG_DIR=/run/gh-config
               mkdir -p "$GH_CONFIG_DIR"
@@ -118,7 +120,7 @@ spec:
                 su hermes -c 'GH_CONFIG_DIR=/run/gh-config /opt/data/bin/gh auth status' >/dev/null 2>&1 || { echo "FATAL: gh auth failed"; exit 1; }
               fi
               # Ensure /opt/data/bin is in PATH for terminal login shells.
-              # bash -l sources /etc/profile which overrides the K8s-set PATH,
+              # bash -l sources /etc/profile which overrides the inherited PATH,
               # so ~/.profile restores /opt/data/bin before the terminal tool
               # captures its environment snapshot (init_session).
               mkdir -p /opt/data/home
@@ -143,8 +145,6 @@ spec:
           env:
             - name: HERMES_HOME
               value: /opt/data
-            - name: PATH
-              value: /opt/data/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
